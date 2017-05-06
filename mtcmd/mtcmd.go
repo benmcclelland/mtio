@@ -6,43 +6,50 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"syscall"
 
 	"github.com/benmcclelland/mtio"
 )
 
-func printStatus(s *mtio.MtGet) {
-	fmt.Printf("%v (%v)\n", mtio.MtTypeToString(s.Type), s.Type)
-	fmt.Println("Residual count:", s.ResID)
-	fmt.Printf("Device registers: %x\n", s.DsReg)
-	fmt.Printf("Status registers: %x\n", s.GStat)
-	fmt.Println(mtio.MtStatusToString(s.GStat))
-	fmt.Println("Error register:", s.ErReg)
-	fmt.Println("Possibly inaccurate:")
-	fmt.Println("  Current file:", s.FileNo)
-	fmt.Println("  Current block number:", s.BlkNo)
-}
+func doOp(file string, op int16, count int32) {
+	f, err := os.OpenFile(file, os.O_RDWR, 0)
+	if err != nil {
+		log.Fatalln("Open failed", os.Args[1], err)
+	}
+	defer f.Close()
 
-func doOp(f *os.File, op int16, count int32) {
 	log.Println("doing operation:", op, "count:", count)
 	m := mtio.NewMtOp(
 		mtio.WithOperation(op),
 		mtio.WithCount(count))
-	err := mtio.DoOp(f, m)
+	err = mtio.DoOp(f, m)
 	if err != nil {
 		log.Fatalln("Operation failed", err)
 	}
 }
 
-func doStatus(f *os.File) {
+func doStatus(file string) {
+	f, err := os.OpenFile(file, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		log.Fatalln("Open failed", os.Args[1], err)
+	}
+	defer f.Close()
+
 	log.Println("getting status")
 	s, err := mtio.GetStatus(f)
 	if err != nil {
 		log.Fatalln("Status failed", err)
 	}
-	printStatus(s)
+	fmt.Println(s)
 }
 
-func doTell(f *os.File) {
+func doTell(file string) {
+	f, err := os.OpenFile(file, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		log.Fatalln("Open failed", os.Args[1], err)
+	}
+	defer f.Close()
+
 	log.Println("getting position")
 	p, err := mtio.GetPos(f)
 	if err != nil {
@@ -59,12 +66,6 @@ func main() {
 	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	f, err := os.OpenFile(os.Args[1], os.O_RDWR, 0)
-	if err != nil {
-		log.Fatalln("Open failed", os.Args[1], err)
-	}
-	defer f.Close()
-
 	switch os.Args[2] {
 	case "op":
 		if len(os.Args) < 4 {
@@ -77,7 +78,7 @@ func main() {
 		}
 
 		if len(os.Args) < 5 {
-			doOp(f, int16(i), 1)
+			doOp(os.Args[1], int16(i), 1)
 			return
 		}
 
@@ -85,13 +86,13 @@ func main() {
 		if err != nil {
 			log.Fatalln("invalid operation id", err)
 		}
-		doOp(f, int16(i), int32(c))
+		doOp(os.Args[1], int16(i), int32(c))
 
 	case "status":
-		doStatus(f)
+		doStatus(os.Args[1])
 
 	case "tell":
-		doTell(f)
+		doTell(os.Args[1])
 
 	default:
 		log.Fatalln("invalid operation")

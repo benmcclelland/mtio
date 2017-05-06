@@ -68,3 +68,18 @@ func GetPos(f *os.File) (*MtPos, error) {
 	}
 	return m, nil
 }
+
+func (s *MtGet) String() string {
+	return fmt.Sprintf(
+		"%v (%v)\n"+
+			"Residual count: %v\n"+
+			"Device registers: %x\n"+
+			"Status registers: %x\n"+
+			"%s\n"+
+			"Error register: %v\n"+
+			"Possibly inaccurate:\n"+
+			"  Current file: %v\n"+
+			"  Current block number: %v",
+		MtTypeToString(s.Type), s.Type, s.ResID, s.DsReg, s.GStat,
+		MtStatusToString(s.GStat), s.ErReg, s.FileNo, s.BlkNo)
+}

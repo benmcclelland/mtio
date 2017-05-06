@@ -3,6 +3,21 @@ golang library for mt ioctls
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/benmcclelland/mtio)
 
+example getting status:
+```
+f, _ := os.OpenFile("/dev/st0", os.O_RDONLY|syscall.O_NONBLOCK, 0)
+defer f.Close()
+s, _ := mtio.GetStatus(f)
+fmt.Println(s)
+```
+
+example running operation:
+```
+f, _ := os.OpenFile("/dev/st0", os.O_RDWR, 0)
+defer f.Close()
+mtio.DoOp(f, mtio.NewMtOp(mtio.WithOperation(mtio.MTREW)))
+```
+
 example using sample program:
 ```
 # ./mtcmd /dev/nst0 status
